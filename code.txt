@@ -1,0 +1,95 @@
+ #include<ESP32Servo.h>
+#define echoPin 12
+#define trigPin 13
+int msensor = 33; //Moisture sensor conneced to D27
+long duration; //------------> for ultrasonic
+long distance; //------------> for ultrasonic
+Servo servo1; //------------> servo1 = to open dustbin mouth
+Servo servo2; //------------> servo2 = to separate DRY and WET wastes
+int pos1,pos2;      //------------> pos1,pos2 = angle made by servo1 and servo2
+void setup() {
+  pinMode(trigPin, OUTPUT);
+  pinMode(echoPin, INPUT);
+  pinMode(msensor,INPUT);
+  servo1.attach(14);
+  servo2.attach(26);
+  Serial.begin(9600);
+}
+void loop() {
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+  duration = pulseIn(echoPin, HIGH);
+  distance = duration * 0.034 / 2;
+  Serial.print("Distance: ");
+  Serial.print(distance);
+  Serial.println(" cm");
+  if (distance < 30)
+  {
+         for (pos2 = 0; pos2 <= 90; pos2++)       // loop for setting inner servo2 at 90 degree
+    {
+      servo2.write(pos2);
+      delay(15);
+    }
+    int value = 0;                            // for the analog value from moisture sensor
+    Serial.println("Dustbin Open");           // connected servo1 || Red=+ve(middle),Brown=-ve(GND),Orange=PWM
+    for (pos1 = 0; pos1 <= 180; pos1++)       // loop for mouth opening
+    {
+      servo1.write(pos1);
+      delay(15);
+    }
+    delay(3000); 
+    value = analogRead(msensor);              // Read the analog value from moisture sensor
+    Serial.print("Moisture value: ");
+    Serial.println(value);
+    
+    //Dumping process
+    if(value<3750)
+    {
+      Serial.println("WET waste Detected");
+      for (pos2 = 90; pos2 <= 175; pos2++)       // loop for dumpimg wet side
+    {
+      servo2.write(pos2);
+      delay(15);
+    }
+    delay(3000);                                //5sec delay for dump fall
+    
+     for (pos2 = 175; pos2 >= 90; pos2--)       // loop for original psition after wet dump
+    {
+      servo2.write(pos2);
+      delay(15);
+    }
+    }
+    else
+    {
+      Serial.println("DRY waste Detected");
+      for (pos2 = 90; pos2 >= 5; pos2--)       // loop for dumpimg dry side
+    {
+      servo2.write(pos2);
+      delay(15);
+    }
+    delay(3000);                               //5sec delay for dump fall
+    
+     for (pos2 = 5; pos2 <= 90; pos2++)       // loop for original psition after dry dump
+    {
+      servo2.write(pos2);
+      delay(15);
+    }
+    }
+    delay(5000);                         // mouth open for 10+20= 30sec
+   for (pos1 = 180; pos1 >= 0; pos1--)       // loop for closing slowly
+    {
+      servo1.write(pos1);
+      delay(15);
+    }
+  }
+  else
+  {
+    Serial.println("Dustbin Close");
+    servo1.write(0);
+    delay(3000);
+}
+delay(5000);
+}
